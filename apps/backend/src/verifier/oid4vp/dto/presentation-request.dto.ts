@@ -6,9 +6,9 @@ import {
     IsOptional,
     IsString,
 } from "class-validator";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 import { WebhookConfig } from "../../../shared/utils/webhook/webhook.dto";
-import { TransactionData } from "../../presentations/entities/presentation-config.entity";
-import { IsTransactionData } from "../../presentations/validators/transaction-data.validator";
+import { TransactionDataDTO } from "../../presentations/dto/transaction-data.dto";
 
 /**
  * Enum for the type of response expected from the presentation request.
@@ -60,10 +60,12 @@ export class PresentationRequest {
     /**
      * Optional transaction data to include in the OID4VP request.
      * If provided, this will override the transaction_data from the presentation configuration.
+     * Required for PaSO (Payments and SCA for OpenID) flows.
      */
+    @ApiPropertyOptional({ type: [TransactionDataDTO] })
     @IsOptional()
     @IsArray()
-    @IsTransactionData()
-    @Type(() => TransactionData)
-    transaction_data?: TransactionData[];
+    @ValidateNested({ each: true }) // Ersetzt die alte @IsTransactionData() Custom Validation
+    @Type(() => TransactionDataDTO)
+    transaction_data?: TransactionDataDTO[];
 }

@@ -1,5 +1,5 @@
 import { WebhookConfig } from "../../../shared/utils/webhook/webhook.dto";
-import { TransactionData } from "../../presentations/entities/presentation-config.entity";
+import { TransactionDataDTO } from "../../presentations/dto/transaction-data.dto";
 
 /**
  * PresentationRequestOptions DTO
@@ -23,5 +23,5 @@ export interface PresentationRequestOptions {
      * Optional transaction data to include in the OID4VP request.
      * If provided, this will override the transaction_data from the presentation configuration.
      */
-    transaction_data?: TransactionData[];
+    transaction_data?: TransactionDataDTO[];
 }

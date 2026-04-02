@@ -1,5 +1,8 @@
-import { OmitType } from "@nestjs/swagger";
+import { ApiPropertyOptional, OmitType } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import { IsArray, IsOptional, ValidateNested } from "class-validator";
 import { PresentationConfig } from "../entities/presentation-config.entity";
+import { TransactionDataDTO } from "../dto/transaction-data.dto";
 
 export class PresentationConfigCreateDto extends OmitType(PresentationConfig, [
     "tenantId",
@@ -7,5 +10,11 @@ export class PresentationConfigCreateDto extends OmitType(PresentationConfig, [
     "createdAt",
     "updatedAt",
 ] as const) {
-    // Define the properties for the presentation config create DTO
+
+    @ApiPropertyOptional({ type: [TransactionDataDTO] })
+    @IsOptional()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => TransactionDataDTO)
+    transaction_data?: TransactionDataDTO[];
 }
