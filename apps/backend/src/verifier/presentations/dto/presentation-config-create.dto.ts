@@ -10,7 +10,6 @@ export class PresentationConfigCreateDto extends OmitType(PresentationConfig, [
     "createdAt",
     "updatedAt",
 ] as const) {
-
     @ApiPropertyOptional({ type: [TransactionDataDTO] })
     @IsOptional()
     @IsArray()

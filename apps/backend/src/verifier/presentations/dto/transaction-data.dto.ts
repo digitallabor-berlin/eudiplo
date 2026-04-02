@@ -19,7 +19,8 @@ export class TransactionDataPayloadDTO {
  */
 export class TransactionDataDTO {
     @ApiProperty({
-        description: "Transaction data type identifier following the PaSO rulebook URN scheme.",
+        description:
+            "Transaction data type identifier following the PaSO rulebook URN scheme.",
         example: "urn:paso:sca:com.example.payments:payment:1",
     })
     @IsString()
@@ -28,7 +29,8 @@ export class TransactionDataDTO {
 
     @ApiProperty({
         type: [String],
-        description: "Array of credential query identifiers that this transaction data applies to. Used for resolving DCQL queries.",
+        description:
+            "Array of credential query identifiers that this transaction data applies to. Used for resolving DCQL queries.",
         example: ["sca_card"],
     })
     @IsArray()
@@ -36,7 +38,8 @@ export class TransactionDataDTO {
     credential_ids!: string[];
 
     @ApiProperty({
-        description: "JSON object containing the transaction details compliant with the specified rulebook.",
+        description:
+            "JSON object containing the transaction details compliant with the specified rulebook.",
     })
     @IsObject()
     @ValidateNested()

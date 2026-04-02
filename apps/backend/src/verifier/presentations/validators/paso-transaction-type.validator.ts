@@ -10,7 +10,9 @@ import {
  * URN must start with "urn:paso:sca:"
  */
 @ValidatorConstraint({ async: false })
-export class IsPaSOTransactionTypeConstraint implements ValidatorConstraintInterface {
+export class IsPaSOTransactionTypeConstraint
+    implements ValidatorConstraintInterface
+{
     validate(type: unknown): boolean {
         return typeof type === "string" && type.startsWith("urn:paso:sca:");
     }
