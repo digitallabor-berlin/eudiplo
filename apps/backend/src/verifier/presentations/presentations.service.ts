@@ -23,6 +23,7 @@ import {
 } from "../../shared/utils/config-import/config-import-orchestrator.service";
 import { MdocverifierService } from "./credential/mdocverifier/mdocverifier.service";
 import { SdjwtvcverifierService } from "./credential/sdjwtvcverifier/sdjwtvcverifier.service";
+import { PaSoScaClaims } from "./interfaces/paso-sca-claims.interface";
 import { AuthResponse } from "./dto/auth-response.dto";
 import { PresentationConfigCreateDto } from "./dto/presentation-config-create.dto";
 import { PresentationConfigUpdateDto } from "./dto/presentation-config-update.dto";
@@ -559,7 +560,47 @@ export class PresentationsService {
                                 result.claims,
                             );
 
-                            return result.claims;
+                            // Extract PaSO SCA claims from the mDOC.
+                            // PaSO specifies these under deviceSigned in namespace 'urn:paso:sca:1'.
+                            let paso_sca: PaSoScaClaims | undefined;
+
+                            // 'jti' is a required claim for PaSO proofs.
+                            if (result.claims && Object.prototype.hasOwnProperty.call(result.claims, "jti")) {
+                                paso_sca = {
+                                    jti: result.claims.jti as string,
+                                    response_mode: result.claims.response_mode as string | undefined,
+                                    display_locale: result.claims.display_locale as string | undefined,
+                                    amr: Array.isArray(result.claims.amr) ? result.claims.amr as string[] : undefined,
+                                    
+                                    // In mDOC, transaction_data_hash is a CBOR 'bstr' (Uint8Array). 
+                                    // We convert it to base64url to match our interface standard.
+                                    transaction_data_hash: result.claims.transaction_data_hash instanceof Uint8Array 
+                                        ? Buffer.from(result.claims.transaction_data_hash).toString('base64url')
+                                        : result.claims.transaction_data_hash as string | undefined,
+                                        
+                                    transaction_data_hash_alg: result.claims.transaction_data_hash_alg as string | undefined,
+                                    metadata_integrity: result.claims.metadata_integrity as string | undefined,
+                                    request_integrity: result.claims.request_integrity as string | undefined,
+                                    wallet_instance_version: result.claims.wallet_instance_version as string | undefined,
+                                };
+
+                                // Privacy-by-design: Clean up raw PaSO claims from the base identity claims object
+                                // to prevent leaking or persisting SCA proof metadata in generic storage.
+                                delete result.claims.jti;
+                                delete result.claims.response_mode;
+                                delete result.claims.display_locale;
+                                delete result.claims.amr;
+                                delete result.claims.transaction_data_hash;
+                                delete result.claims.transaction_data_hash_alg;
+                                delete result.claims.metadata_integrity;
+                                delete result.claims.request_integrity;
+                                delete result.claims.wallet_instance_version;
+                            }
+
+                            return {
+                                ...result.claims,
+                                paso_sca,
+                            };
                         } else if (type === "dc+sd-jwt") {
                             const result =
                                 await this.sdjwtvcverifierService.verify(cred, {
@@ -567,8 +608,31 @@ export class PresentationsService {
                                     keyBindingNonce: session.vp_nonce!,
                                     ...verifyOptions,
                                 } as any);
+
+                            // Extract PaSO SCA claims from the Key Binding JWT (KB-JWT)
+                            // Privacy-by-Design: Only pick the specific fields required by PaSO.
+                            // Do not persist the raw proof or unmapped properties.
+                            const kbPayload = result.kb?.payload as Record<string, unknown> | undefined;
+                            let paso_sca: PaSoScaClaims | undefined;
+
+                            // 'jti' is a required claim for PaSO proofs, serving as a reliable indicator.
+                            if (kbPayload && Object.prototype.hasOwnProperty.call(kbPayload, "jti")) {
+                                paso_sca = {
+                                    jti: kbPayload.jti as string,
+                                    response_mode: kbPayload.response_mode as string | undefined,
+                                    display_locale: kbPayload.display_locale as string | undefined,
+                                    amr: Array.isArray(kbPayload.amr) ? kbPayload.amr as string[] : undefined,
+                                    transaction_data_hash: kbPayload.transaction_data_hash as string | undefined,
+                                    transaction_data_hash_alg: kbPayload.transaction_data_hash_alg as string | undefined,
+                                    metadata_integrity: kbPayload.metadata_integrity as string | undefined,
+                                    request_integrity: kbPayload.request_integrity as string | undefined,
+                                    wallet_instance_version: kbPayload.wallet_instance_version as string | undefined,
+                                };
+                            }
+
                             return {
                                 ...result.payload,
+                                paso_sca,
                                 cnf: undefined,
                                 status: undefined,
                             };

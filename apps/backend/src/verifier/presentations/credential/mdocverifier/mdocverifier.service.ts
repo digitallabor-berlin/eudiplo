@@ -79,6 +79,7 @@ export class MdocverifierService {
 
             // 2) Extract claims from the issuer signed data
             const issuerSigned = mdocDocument.issuerSigned;
+            const deviceSigned = mdocDocument.deviceSigned;
             const docType = mdocDocument.docType;
 
             // Collect claims from all available namespaces.
@@ -97,6 +98,23 @@ export class MdocverifierService {
                 if (nsClaims) {
                     claimsByNamespace[ns] = nsClaims;
                     Object.assign(claims, nsClaims);
+                }
+            }
+
+            // Process Device Signed Namespaces (Required for PaSO SCA claims like jti, amr)
+            const deviceNamespacesMap = mdocDocument.deviceSigned?.deviceNamespaces?.deviceNamespaces;
+            if (deviceNamespacesMap) {
+                for (const [ns, deviceItems] of deviceNamespacesMap.entries()) {
+                    const nsClaimsMap = deviceItems.deviceSignedItems;
+                    if (nsClaimsMap) {
+                        const nsClaims: Record<string, unknown> = {};
+                        for (const [key, value] of nsClaimsMap.entries()) {
+                            nsClaims[key] = value;
+                        }
+                        // Safely merge device-signed claims into the existing claim objects
+                        claimsByNamespace[ns] = { ...(claimsByNamespace[ns] || {}), ...nsClaims };
+                        Object.assign(claims, nsClaims);
+                    }
                 }
             }
 
