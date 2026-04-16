@@ -1,5 +1,5 @@
 /**
- * Represents the PaSO (Payments and SCA for OpenID) claims extracted from the 
+ * Represents the PaSO (Payments and SCA for OpenID) claims extracted from the
  * cryptographic proof (e.g. SD-JWT Key Binding JWT or mDOC DeviceSigned).
  * Stored ephemerally during the session lifecycle.
  */

@@ -102,7 +102,8 @@ export class MdocverifierService {
             }
 
             // Process Device Signed Namespaces (Required for PaSO SCA claims like jti, amr)
-            const deviceNamespacesMap = mdocDocument.deviceSigned?.deviceNamespaces?.deviceNamespaces;
+            const deviceNamespacesMap =
+                mdocDocument.deviceSigned?.deviceNamespaces?.deviceNamespaces;
             if (deviceNamespacesMap) {
                 for (const [ns, deviceItems] of deviceNamespacesMap.entries()) {
                     const nsClaimsMap = deviceItems.deviceSignedItems;
@@ -112,7 +113,10 @@ export class MdocverifierService {
                             nsClaims[key] = value;
                         }
                         // Safely merge device-signed claims into the existing claim objects
-                        claimsByNamespace[ns] = { ...(claimsByNamespace[ns] || {}), ...nsClaims };
+                        claimsByNamespace[ns] = {
+                            ...(claimsByNamespace[ns] || {}),
+                            ...nsClaims,
+                        };
                         Object.assign(claims, nsClaims);
                     }
                 }

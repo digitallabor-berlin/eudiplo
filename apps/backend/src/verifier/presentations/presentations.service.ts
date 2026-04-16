@@ -565,23 +565,54 @@ export class PresentationsService {
                             let paso_sca: PaSoScaClaims | undefined;
 
                             // 'jti' is a required claim for PaSO proofs.
-                            if (result.claims && Object.prototype.hasOwnProperty.call(result.claims, "jti")) {
+                            if (
+                                result.claims &&
+                                Object.prototype.hasOwnProperty.call(
+                                    result.claims,
+                                    "jti",
+                                )
+                            ) {
                                 paso_sca = {
                                     jti: result.claims.jti as string,
-                                    response_mode: result.claims.response_mode as string | undefined,
-                                    display_locale: result.claims.display_locale as string | undefined,
-                                    amr: Array.isArray(result.claims.amr) ? result.claims.amr as string[] : undefined,
-                                    
-                                    // In mDOC, transaction_data_hash is a CBOR 'bstr' (Uint8Array). 
+                                    response_mode: result.claims
+                                        .response_mode as string | undefined,
+                                    display_locale: result.claims
+                                        .display_locale as string | undefined,
+                                    amr: Array.isArray(result.claims.amr)
+                                        ? (result.claims.amr as string[])
+                                        : undefined,
+
+                                    // In mDOC, transaction_data_hash is a CBOR 'bstr' (Uint8Array).
                                     // We convert it to base64url to match our interface standard.
-                                    transaction_data_hash: result.claims.transaction_data_hash instanceof Uint8Array 
-                                        ? Buffer.from(result.claims.transaction_data_hash).toString('base64url')
-                                        : result.claims.transaction_data_hash as string | undefined,
-                                        
-                                    transaction_data_hash_alg: result.claims.transaction_data_hash_alg as string | undefined,
-                                    metadata_integrity: result.claims.metadata_integrity as string | undefined,
-                                    request_integrity: result.claims.request_integrity as string | undefined,
-                                    wallet_instance_version: result.claims.wallet_instance_version as string | undefined,
+                                    transaction_data_hash:
+                                        result.claims
+                                            .transaction_data_hash instanceof
+                                        Uint8Array
+                                            ? Buffer.from(
+                                                  result.claims
+                                                      .transaction_data_hash,
+                                              ).toString("base64url")
+                                            : (result.claims
+                                                  .transaction_data_hash as
+                                                  | string
+                                                  | undefined),
+
+                                    transaction_data_hash_alg: result.claims
+                                        .transaction_data_hash_alg as
+                                        | string
+                                        | undefined,
+                                    metadata_integrity: result.claims
+                                        .metadata_integrity as
+                                        | string
+                                        | undefined,
+                                    request_integrity: result.claims
+                                        .request_integrity as
+                                        | string
+                                        | undefined,
+                                    wallet_instance_version: result.claims
+                                        .wallet_instance_version as
+                                        | string
+                                        | undefined,
                                 };
 
                                 // Privacy-by-design: Clean up raw PaSO claims from the base identity claims object
@@ -612,21 +643,50 @@ export class PresentationsService {
                             // Extract PaSO SCA claims from the Key Binding JWT (KB-JWT)
                             // Privacy-by-Design: Only pick the specific fields required by PaSO.
                             // Do not persist the raw proof or unmapped properties.
-                            const kbPayload = result.kb?.payload as Record<string, unknown> | undefined;
+                            const kbPayload = result.kb?.payload as
+                                | Record<string, unknown>
+                                | undefined;
                             let paso_sca: PaSoScaClaims | undefined;
 
                             // 'jti' is a required claim for PaSO proofs, serving as a reliable indicator.
-                            if (kbPayload && Object.prototype.hasOwnProperty.call(kbPayload, "jti")) {
+                            if (
+                                kbPayload &&
+                                Object.prototype.hasOwnProperty.call(
+                                    kbPayload,
+                                    "jti",
+                                )
+                            ) {
                                 paso_sca = {
                                     jti: kbPayload.jti as string,
-                                    response_mode: kbPayload.response_mode as string | undefined,
-                                    display_locale: kbPayload.display_locale as string | undefined,
-                                    amr: Array.isArray(kbPayload.amr) ? kbPayload.amr as string[] : undefined,
-                                    transaction_data_hash: kbPayload.transaction_data_hash as string | undefined,
-                                    transaction_data_hash_alg: kbPayload.transaction_data_hash_alg as string | undefined,
-                                    metadata_integrity: kbPayload.metadata_integrity as string | undefined,
-                                    request_integrity: kbPayload.request_integrity as string | undefined,
-                                    wallet_instance_version: kbPayload.wallet_instance_version as string | undefined,
+                                    response_mode: kbPayload.response_mode as
+                                        | string
+                                        | undefined,
+                                    display_locale: kbPayload.display_locale as
+                                        | string
+                                        | undefined,
+                                    amr: Array.isArray(kbPayload.amr)
+                                        ? (kbPayload.amr as string[])
+                                        : undefined,
+                                    transaction_data_hash:
+                                        kbPayload.transaction_data_hash as
+                                            | string
+                                            | undefined,
+                                    transaction_data_hash_alg:
+                                        kbPayload.transaction_data_hash_alg as
+                                            | string
+                                            | undefined,
+                                    metadata_integrity:
+                                        kbPayload.metadata_integrity as
+                                            | string
+                                            | undefined,
+                                    request_integrity:
+                                        kbPayload.request_integrity as
+                                            | string
+                                            | undefined,
+                                    wallet_instance_version:
+                                        kbPayload.wallet_instance_version as
+                                            | string
+                                            | undefined,
                                 };
                             }
 
