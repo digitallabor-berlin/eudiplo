@@ -5,6 +5,7 @@ import {
     IsObject,
     IsOptional,
     IsString,
+    ValidateNested,
 } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { WebhookConfig } from "../../../shared/utils/webhook/webhook.dto";
@@ -65,7 +66,7 @@ export class PresentationRequest {
     @ApiPropertyOptional({ type: [TransactionDataDTO] })
     @IsOptional()
     @IsArray()
-    @ValidateNested({ each: true }) // Ersetzt die alte @IsTransactionData() Custom Validation
+    @ValidateNested({ each: true })
     @Type(() => TransactionDataDTO)
     transaction_data?: TransactionDataDTO[];
 }
