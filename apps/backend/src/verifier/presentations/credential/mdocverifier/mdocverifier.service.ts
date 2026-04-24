@@ -100,6 +100,23 @@ export class MdocverifierService {
                 }
             }
 
+            // Process Device Signed Namespaces
+            const deviceNamespacesMap = mdocDocument.deviceSigned?.deviceNamespaces?.deviceNamespaces;
+            if (deviceNamespacesMap) {
+                for (const [ns, deviceItems] of deviceNamespacesMap.entries()) {
+                    const nsClaimsMap = deviceItems.deviceSignedItems;
+                    if (nsClaimsMap) {
+                        const nsClaims: Record<string, unknown> = {};
+                        for (const [key, value] of nsClaimsMap.entries()) {
+                            nsClaims[key] = value;
+                        }
+                        // Safely merge device-signed claims into the existing claim objects
+                        claimsByNamespace[ns] = { ...(claimsByNamespace[ns] || {}), ...nsClaims };
+                        Object.assign(claims, nsClaims);
+                    }
+                }
+            }
+
             // 3) Build the session transcript for verification
             const sessionTranscript = await SessionTranscript.forOid4Vp(
                 sessionData,
