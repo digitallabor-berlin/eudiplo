@@ -123,6 +123,21 @@
               </mat-form-field>
 
               <mat-form-field>
+                <mat-label>Expected Origins (optional)</mat-label>
+                <input
+                  matInput
+                  formControlName="expected_origins"
+                  placeholder="https://verifier.example.com, https://other.example.com"
+                />
+                <mat-icon matSuffix>public</mat-icon>
+                <mat-hint>
+                  Only used for the <strong>DC API</strong> response type. Comma-separated list of
+                  browser origins the wallet should validate against. If empty, the origin of the
+                  request that creates the presentation is used.
+                </mat-hint>
+              </mat-form-field>
+
+              <mat-form-field>
                 <mat-label>Access Key Chain (optional)</mat-label>
                 <mat-select formControlName="accessKeyChainId">
                   <mat-select-trigger>

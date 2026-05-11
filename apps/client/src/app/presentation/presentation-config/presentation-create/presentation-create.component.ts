@@ -90,6 +90,7 @@ export class PresentationCreateComponent implements OnInit {
       lifeTime: new FormControl(300, [Validators.required, Validators.min(1)]),
       registrationCert: new FormControl(undefined), // Optional field
       transaction_data: new FormControl(undefined), // Optional transaction data
+      expected_origins: new FormControl<string | undefined>(undefined),
       attached: new FormArray([]),
       webhook: new FormGroup({
         url: new FormControl(undefined), // Optional, but if filled, should be valid URL
@@ -144,6 +145,10 @@ export class PresentationCreateComponent implements OnInit {
 
           if (formData.transaction_data && typeof formData.transaction_data === 'object') {
             formData.transaction_data = JSON.stringify(formData.transaction_data, null, 2);
+          }
+
+          if (Array.isArray(formData.expected_origins)) {
+            formData.expected_origins = formData.expected_origins.join(', ');
           }
 
           (formData.attached || []).forEach(() => this.addAttachment());
@@ -216,6 +221,8 @@ export class PresentationCreateComponent implements OnInit {
     if (!formValue.transaction_data) {
       formValue.transaction_data = null; // Set to null to clear transaction_data
     }
+
+    formValue.expected_origins = this.parseExpectedOrigins(formValue.expected_origins);
 
     // In copy mode or new creation, use form ID; in edit mode, use route param ID
     if (!this.copyMode && this.route.snapshot.params['id']) {
@@ -316,11 +323,33 @@ export class PresentationCreateComponent implements OnInit {
       formValue.redirectUri = undefined;
     }
 
+    formValue.expected_origins = this.parseExpectedOrigins(formValue.expected_origins) ?? undefined;
+
     // Clean up empty optional fields
     if (formValue.attached?.length === 0) {
       formValue.attached = undefined;
     }
     return formValue;
+  }
+
+  /**
+   * Convert the comma-separated form value for `expected_origins` into the
+   * `string[] | null` shape expected by the backend. Returns `null` when the
+   * field is empty (so the API clears the value).
+   */
+  private parseExpectedOrigins(value: unknown): string[] | null {
+    if (Array.isArray(value)) {
+      const cleaned = value.map((v) => String(v).trim()).filter((v) => v.length > 0);
+      return cleaned.length > 0 ? cleaned : null;
+    }
+    if (typeof value === 'string') {
+      const cleaned = value
+        .split(',')
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0);
+      return cleaned.length > 0 ? cleaned : null;
+    }
+    return null;
   }
 
   /**
@@ -364,6 +393,10 @@ export class PresentationCreateComponent implements OnInit {
       }
       if (formData.registrationCert) {
         formData.registrationCert = extractSchema(formData.registrationCert);
+      }
+
+      if (Array.isArray(formData.expected_origins)) {
+        formData.expected_origins = formData.expected_origins.join(', ');
       }
 
       this.form.patchValue(formData);

@@ -252,4 +252,21 @@ export class PresentationConfig {
     @IsString()
     @Column("varchar", { nullable: true })
     accessKeyChainId?: string | null;
+
+    /**
+     * Browser origins the wallet should accept when this configuration is
+     * presented through the W3C Digital Credentials API (DC API). Used as the
+     * `expected_origins` field in the signed authorization request object.
+     * Only consulted when the request is created with `response_type=dc-api`;
+     * ignored for the `uri` (cross-device) flow. If omitted, the value is
+     * derived from the `Origin`/`Host` header of the request that creates the
+     * presentation, which only works when the call originates from the same
+     * browser context that will run the DC API flow.
+     * @example ["https://verifier.example.com"]
+     */
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    @Column("json", { nullable: true })
+    expected_origins?: string[] | null;
 }

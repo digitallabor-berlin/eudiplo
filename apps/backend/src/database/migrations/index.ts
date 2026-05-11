@@ -20,3 +20,4 @@ export { AddDirectPostSecurityFields1751000000000 } from "./1751000000000-AddDir
 export { AddRefreshTokenToSession1752000000000 } from "./1752000000000-AddRefreshTokenToSession";
 export { AddCredentialResponseEncryptionToIssuanceConfig1753000000000 } from "./1753000000000-AddCredentialResponseEncryptionToIssuanceConfig";
 export { AddRefreshTokenToChainedAsSession1754000000000 } from "./1754000000000-AddRefreshTokenToChainedAsSession";
+export { AddExpectedOriginsToPresentationConfig1755000000000 } from "./1755000000000-AddExpectedOriginsToPresentationConfig";

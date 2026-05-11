@@ -101,7 +101,9 @@ export class Oid4vpService {
      * This method generates a JWT that includes the necessary parameters for the authorization request.
      * It initializes the session logging context and logs the start of the flow.
      * @param session
-     * @param origin
+     * @param origin Fallback origin derived from request headers, used for
+     *     the DC API `expected_origins` field when the presentation config
+     *     does not configure them explicitly.
      * @param noRedirect
      * @returns
      */
@@ -218,7 +220,12 @@ export class Oid4vpService {
                         ? "dc_api.jwt"
                         : "direct_post.jwt",
                     nonce,
-                    expected_origins: session.useDcApi ? [origin] : undefined,
+                    expected_origins: session.useDcApi
+                        ? presentationConfig.expected_origins &&
+                          presentationConfig.expected_origins.length > 0
+                            ? presentationConfig.expected_origins
+                            : [origin]
+                        : undefined,
                     dcql_query,
                     client_metadata: {
                         jwks: {
