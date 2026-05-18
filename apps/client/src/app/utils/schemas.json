@@ -1918,7 +1918,7 @@
           "default": "leaf"
         },
         "mode": {
-          "enum": ["federation-only", "lote-only", "hybrid"],
+          "enum": ["federation-only", "hybrid"],
           "type": "string",
           "description": "Trust decision strategy when both LoTE trust lists and OpenID Federation are configured.",
           "default": "hybrid"
@@ -2252,7 +2252,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["aki", "etsi_tl", "openid_federation"]
+          "enum": ["etsi_tl", "openid_federation"]
         },
         "values": {
           "type": "array",
@@ -2899,11 +2899,21 @@
       "type": "object",
       "properties": {
         "path": {
+          "type": "array",
           "description": "Path to claim value",
           "example": ["address", "locality"],
-          "type": "array",
           "items": {
-            "type": "string"
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": {
@@ -3132,16 +3142,17 @@
       "type": "object",
       "properties": {
         "vct": {
-          "type": "object",
           "description": "VCT as a URI string (e.g., urn:eudi:pid:de:1) or as an object for EUDIPLO-hosted VCT",
-          "nullable": true,
-          "oneOf": [
+          "anyOf": [
             {
               "type": "string",
               "description": "VCT URI string"
             },
             {
               "$ref": "./VCT.schema.json"
+            },
+            {
+              "type": "null"
             }
           ]
         },
@@ -3251,6 +3262,12 @@
         "statusManagement": {
           "type": "boolean"
         },
+        "sdJwtTrustFormat": {
+          "nullable": true,
+          "description": "For SD-JWT credentials: determines whether to include certificate chain (x5c)\nor use federation-based trust (iss claim).\nDefault: \"x5c\" (federation must be explicitly selected)",
+          "enum": ["x5c", "federation"],
+          "type": "string"
+        },
         "lifeTime": {
           "type": "number"
         }
@@ -3269,16 +3286,17 @@
       "type": "object",
       "properties": {
         "vct": {
-          "type": "object",
           "description": "VCT as a URI string (e.g., urn:eudi:pid:de:1) or as an object for EUDIPLO-hosted VCT",
-          "nullable": true,
-          "oneOf": [
+          "anyOf": [
             {
               "type": "string",
               "description": "VCT URI string"
             },
             {
               "$ref": "./VCT.schema.json"
+            },
+            {
+              "type": "null"
             }
           ]
         },
@@ -3370,6 +3388,12 @@
         },
         "statusManagement": {
           "type": "boolean"
+        },
+        "sdJwtTrustFormat": {
+          "nullable": true,
+          "description": "For SD-JWT credentials: determines whether to include certificate chain (x5c)\nor use federation-based trust (iss claim).\nDefault: \"x5c\" (federation must be explicitly selected)",
+          "enum": ["x5c", "federation"],
+          "type": "string"
         },
         "lifeTime": {
           "type": "number"
@@ -3389,16 +3413,17 @@
       "type": "object",
       "properties": {
         "vct": {
-          "type": "object",
           "description": "VCT as a URI string (e.g., urn:eudi:pid:de:1) or as an object for EUDIPLO-hosted VCT",
-          "nullable": true,
-          "oneOf": [
+          "anyOf": [
             {
               "type": "string",
               "description": "VCT URI string"
             },
             {
               "$ref": "./VCT.schema.json"
+            },
+            {
+              "type": "null"
             }
           ]
         },
@@ -3490,6 +3515,12 @@
         },
         "statusManagement": {
           "type": "boolean"
+        },
+        "sdJwtTrustFormat": {
+          "nullable": true,
+          "description": "For SD-JWT credentials: determines whether to include certificate chain (x5c)\nor use federation-based trust (iss claim).\nDefault: \"x5c\" (federation must be explicitly selected)",
+          "enum": ["x5c", "federation"],
+          "type": "string"
         },
         "lifeTime": {
           "type": "number"
