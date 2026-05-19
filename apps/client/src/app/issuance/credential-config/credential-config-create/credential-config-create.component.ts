@@ -697,9 +697,11 @@ export class CredentialConfigCreateComponent implements OnInit {
 
   // Field Definition Management
   createFieldDisplayGroup(display?: FieldDisplayDto): FormGroup {
+    const displayEntry = display as FieldDisplayDto;
+
     return new FormGroup({
-      lang: new FormControl(display?.lang || 'en-US', [Validators.required]),
-      label: new FormControl(display?.label || '', [Validators.required]),
+      locale: new FormControl(displayEntry?.locale || 'en-US', [Validators.required]),
+      name: new FormControl(displayEntry?.name || '', [Validators.required]),
       description: new FormControl(display?.description || ''),
     });
   }
@@ -988,11 +990,11 @@ export class CredentialConfigCreateComponent implements OnInit {
 
         const display = (rawField['display'] || [])
           .map((entry: any) => ({
-            lang: entry['lang']?.trim(),
-            label: entry['label']?.trim(),
+            locale: entry['locale']?.trim() || entry['lang']?.trim(),
+            name: entry['name']?.trim() || entry['label']?.trim(),
             description: entry['description']?.trim() || undefined,
           }))
-          .filter((entry: FieldDisplayDto) => !!entry.lang && !!entry.label);
+          .filter((entry: FieldDisplayDto) => !!entry.locale && !!entry.name);
 
         if (display.length > 0) {
           field.display = display;

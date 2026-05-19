@@ -2497,7 +2497,7 @@
           "description": "Action type discriminator",
           "example": "openid4vp_presentation"
         },
-        "label": {
+        "name": {
           "type": "string",
           "description": "Optional label for this step (for display purposes)",
           "example": "Identity Verification"
@@ -2527,7 +2527,7 @@
           "description": "Action type discriminator",
           "example": "redirect_to_web"
         },
-        "label": {
+        "name": {
           "type": "string",
           "description": "Optional label for this step (for display purposes)",
           "example": "Identity Verification"
@@ -2869,14 +2869,14 @@
       "title": "FieldDisplayDto",
       "type": "object",
       "properties": {
-        "lang": {
+        "locale": {
           "type": "string",
-          "description": "Locale code",
+          "description": "Locale code based on BCP47 (RFC 5646)",
           "example": "en-US"
         },
-        "label": {
+        "name": {
           "type": "string",
-          "description": "Display label",
+          "description": "Display name",
           "example": "Given Name"
         },
         "description": {
@@ -2885,7 +2885,7 @@
           "example": "Primary first name"
         }
       },
-      "required": ["lang", "label"],
+      "required": ["locale", "name"],
       "additionalProperties": false
     }
   },
@@ -3598,7 +3598,7 @@
           "type": "string",
           "description": "Stable machine-readable value to submit in schema metadata category/tags fields."
         },
-        "label": {
+        "name": {
           "type": "string",
           "description": "Display label for UI rendering."
         },
@@ -3612,7 +3612,7 @@
           "description": "Replacement code when status is deprecated."
         }
       },
-      "required": ["code", "label", "status"],
+      "required": ["code", "name", "status"],
       "additionalProperties": false
     }
   },
@@ -4105,7 +4105,7 @@
         "name": {
           "type": "string"
         },
-        "lang": {
+        "locale": {
           "type": "string"
         },
         "uri": {
@@ -4398,14 +4398,14 @@
       "title": "RegistrationCertificatePurpose",
       "type": "object",
       "properties": {
-        "lang": {
+        "locale": {
           "type": "string"
         },
         "content": {
           "type": "string"
         }
       },
-      "required": ["lang", "content"],
+      "required": ["locale", "content"],
       "additionalProperties": false
     }
   },
