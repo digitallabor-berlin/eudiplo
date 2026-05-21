@@ -298,23 +298,6 @@ jobs:
         env:
           TESTCONTAINERS_HOST_OVERRIDE: host.testcontainers.internal
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage-e2e/coverage-final.json
-          flags: e2e-test
-          name: codecov-umbrella
-          fail_ci_if_error: false
-
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v6
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          report_type: test_results
-          files: ./apps/backend/test-report.junit.xml
-
       - name: Upload OIDF test results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
@@ -323,16 +306,29 @@ jobs:
           path: tmp/oidf-logs
           if-no-files-found: ignore
 
+      - name: Upload coverage for SonarQube
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-lcov
+          path: apps/backend/coverage/e2e/lcov.info
+          if-no-files-found: warn
+
   sonarqube:
     name: SonarQube
     permissions:
       contents: read
     runs-on: ubuntu-latest
-    needs: [lint]
+    needs: [test-e2e]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-lcov
+          path: apps/backend/coverage/e2e
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
         env:
