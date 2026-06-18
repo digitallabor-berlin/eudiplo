@@ -16,6 +16,7 @@ import {
     type SchemaMetadataVocabulariesDto,
     schemaMetadataControllerExport,
     schemaMetadataControllerFindAll,
+    schemaMetadataControllerFindAllByRelyingParty,
     schemaMetadataControllerFindOne,
     schemaMetadataControllerGetLatestVersionInfo,
     schemaMetadataControllerGetSchema,
@@ -29,7 +30,6 @@ import {
     schemaMetadataControllerUpdateMetadata,
     schemaMetadataControllerUploadAsset,
     type UploadAssetResponseDto,
-    schemaMetadataControllerFindAllByRelyingParty,
 } from "./generated";
 import { RegistrarAuthService } from "./registrar-auth.service";
 

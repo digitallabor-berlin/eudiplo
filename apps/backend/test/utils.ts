@@ -446,7 +446,20 @@ export async function setupIssuanceTestApp(): Promise<IssuanceTestContext> {
     }).compile();
 
     const app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe());
+    // Mirror production's ValidationPipe (see apps/backend/src/main.ts). Tests
+    // that used a bare `new ValidationPipe()` silently skipped the production
+    // whitelist, hiding a class-validator + Record<string, X> data-loss bug
+    // where dynamic keys (e.g. PaSO transaction-data URNs) get stripped.
+    app.useGlobalPipes(
+        new ValidationPipe({
+            transform: true,
+            whitelist: true,
+            forbidUnknownValues: false,
+            forbidNonWhitelisted: false,
+            stopAtFirstError: false,
+            validateCustomDecorators: true,
+        }),
+    );
 
     const configService = app.get(ConfigService);
     configService.set("CONFIG_IMPORT", false);

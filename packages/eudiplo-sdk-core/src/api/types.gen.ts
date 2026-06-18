@@ -1207,6 +1207,98 @@ export type WebhookEndpointEntity = {
     url: string;
 };
 
+export type PasoConfig = {
+    /**
+     * A map of PaSO transaction data types keyed by URN
+     */
+    transactionDataTypes: {
+        [key: string]: PasoTransactionDataTypeConfig;
+    };
+    /**
+     * Lifetime of the signed metadata JWT in seconds. Default is 86400 (24 hours).
+     */
+    signedMetadataLifetimeSeconds?: number;
+};
+
+export type PasoFieldDisplay = {
+    /**
+     * Locale code (e.g., 'en', 'de')
+     */
+    locale: string;
+    /**
+     * Display name for the field
+     */
+    name: string;
+    /**
+     * Optional display type
+     */
+    display_type?: string;
+};
+
+export type PasoClaimMetadata = {
+    /**
+     * Path to the claim inside the credential
+     */
+    path: Array<string | number | null>;
+    /**
+     * Indicates whether the claim is mandatory for the transaction
+     */
+    mandatory?: boolean;
+    /**
+     * Localized display information for the claim
+     */
+    display?: Array<PasoFieldDisplay>;
+    /**
+     * Type of value (only allowed if display is present)
+     */
+    value_type?: string;
+};
+
+export type PasoUiLabelEntry = {
+    /**
+     * Locale code (e.g., 'en')
+     */
+    locale?: string;
+    /**
+     * The text value of the UI label
+     */
+    value: string;
+    /**
+     * Optional value type designation
+     */
+    value_type?: string;
+};
+
+export type PasoUiLabels = {
+    /**
+     * Label for the affirmative action
+     */
+    affirmative_action_label?: Array<PasoUiLabelEntry>;
+    /**
+     * Label for the denial action
+     */
+    denial_action_label?: Array<PasoUiLabelEntry>;
+    /**
+     * Title for the transaction UI
+     */
+    transaction_title?: Array<PasoUiLabelEntry>;
+    /**
+     * Security hint for the user
+     */
+    security_hint?: Array<PasoUiLabelEntry>;
+};
+
+export type PasoTransactionDataTypeConfig = {
+    /**
+     * Claims included in this transaction data type
+     */
+    claims: Array<PasoClaimMetadata>;
+    /**
+     * UI labels for the transaction UI
+     */
+    ui_labels?: PasoUiLabels;
+};
+
 export type SchemaUriEntry = {
     /**
      * Credential config ID to resolve and upload its schema content. When set, uri can be omitted and is resolved server-side.
@@ -1223,7 +1315,7 @@ export type SchemaUriEntry = {
     /**
      * Schema-format specific metadata (for example { vct: 'urn:example:vct' } for dc+sd-jwt).
      */
-    meta: {
+    meta?: {
         [key: string]: unknown;
     };
 };
@@ -1250,7 +1342,7 @@ export type TrustAuthorityEntry = {
      */
     verificationMethod?: {
         [key: string]: unknown;
-    };
+    } | string;
 };
 
 export type SchemaMetaConfig = {
@@ -1493,6 +1585,7 @@ export type CredentialConfig = {
      * The underlying TS11 specification is not yet finalized.
      */
     schemaMeta?: SchemaMetaConfig;
+    paso?: PasoConfig;
     /**
      * Embedded disclosure policy (discriminated union by `policy`).
      * The discriminator makes class-transformer instantiate the right subclass,
@@ -1554,6 +1647,7 @@ export type CredentialConfigCreate = {
      * The underlying TS11 specification is not yet finalized.
      */
     schemaMeta?: SchemaMetaConfig;
+    paso?: PasoConfig;
     /**
      * Embedded disclosure policy (discriminated union by `policy`).
      * The discriminator makes class-transformer instantiate the right subclass,
@@ -1608,6 +1702,7 @@ export type CredentialConfigUpdate = {
      * The underlying TS11 specification is not yet finalized.
      */
     schemaMeta?: SchemaMetaConfig;
+    paso?: PasoConfig;
     /**
      * Embedded disclosure policy (discriminated union by `policy`).
      * The discriminator makes class-transformer instantiate the right subclass,

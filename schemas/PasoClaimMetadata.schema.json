@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/openwallet-foundation/eudiplo/refs/heads/main/schemas/PasoClaimMetadata.schema.json",
+  "title": "PasoClaimMetadata",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "array",
+      "description": "Path to the claim inside the credential",
+      "example": [
+        "payment_details",
+        "amount"
+      ],
+      "items": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "mandatory": {
+      "type": "boolean",
+      "description": "Indicates whether the claim is mandatory for the transaction",
+      "example": true
+    },
+    "display": {
+      "description": "Localized display information for the claim",
+      "type": "array",
+      "items": {
+        "$ref": "./PasoFieldDisplay.schema.json"
+      }
+    },
+    "value_type": {
+      "type": "string",
+      "description": "Type of value (only allowed if display is present)",
+      "example": "currency-amount"
+    }
+  },
+  "required": [
+    "path"
+  ],
+  "additionalProperties": false
+}

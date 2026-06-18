@@ -453,4 +453,134 @@ export const configs: PredefinedConfig[] = [
       lifeTime: 604800,
     },
   },
+  {
+    name: 'SCA Payment Card (PASO)',
+    description:
+      'Bank-issued credential aligned with the base Payment rulebook (urn:paso:sca:global:payment:1).',
+    icon: 'payments',
+    config: {
+      id: 'sca-payment',
+      description: 'SCA Payment Card',
+      config: {
+        scope: 'sca-payment',
+        format: 'dc+sd-jwt',
+        display: [
+          {
+            name: 'SCA Card',
+            description: 'SCA Card for Payment Authorization',
+            locale: 'en-US',
+            background_color: '#123456',
+            text_color: '#FFFFFF',
+          },
+          {
+            name: 'SCA Karte',
+            description: 'SCA-Karte zur Zahlungsautorisierung',
+            locale: 'de-DE',
+            background_color: '#123456',
+            text_color: '#FFFFFF',
+          },
+        ],
+      },
+      vct: 'https://bank.example/sca/card',
+      keyBinding: true,
+      statusManagement: true,
+      sdJwtTrustFormat: 'x5c',
+      lifeTime: 604800,
+      // Credential attributes required by the Payment rulebook §1.
+      fields: [
+        {
+          path: ['authorizing_party'],
+          type: 'string',
+          defaultValue: 'bank.example',
+          mandatory: true,
+          disclosable: true,
+          display: [
+            { locale: 'en-US', name: 'Authorizing Party' },
+            { locale: 'de-DE', name: 'Autorisierende Stelle' },
+          ],
+        },
+        {
+          path: ['authorizing_party_name'],
+          type: 'string',
+          defaultValue: 'Example Bank',
+          mandatory: true,
+          disclosable: true,
+          display: [
+            { locale: 'en-US', name: 'Authorizing Party Name' },
+            { locale: 'de-DE', name: 'Name der autorisierenden Stelle' },
+          ],
+        },
+        {
+          path: ['payment_network'],
+          type: 'string',
+          defaultValue: 'sepa.example',
+          mandatory: true,
+          disclosable: true,
+          display: [
+            { locale: 'en-US', name: 'Payment Network' },
+            { locale: 'de-DE', name: 'Zahlungsnetzwerk' },
+          ],
+        },
+        {
+          path: ['payment_network_name'],
+          type: 'string',
+          defaultValue: 'SEPA Instant',
+          mandatory: true,
+          disclosable: true,
+          display: [
+            { locale: 'en-US', name: 'Payment Network Name' },
+            { locale: 'de-DE', name: 'Name des Zahlungsnetzwerks' },
+          ],
+        },
+      ],
+      paso: {
+        signedMetadataLifetimeSeconds: 86400,
+        transactionDataTypes: {
+          // Claim order is normative per the rulebook §2.
+          'urn:paso:sca:global:payment:1': {
+            claims: [
+              { path: ['transaction_id'] },
+              {
+                path: ['amount'],
+                mandatory: true,
+                value_type: 'iso_currency_amount',
+                display: [
+                  { locale: 'en', name: 'Amount' },
+                  { locale: 'de', name: 'Betrag' },
+                ],
+              },
+              {
+                path: ['payee', 'name'],
+                mandatory: true,
+                display: [
+                  { locale: 'en', name: 'Payee' },
+                  { locale: 'de', name: 'Empfänger' },
+                ],
+              },
+              { path: ['payee', 'id'], mandatory: true },
+              {
+                path: ['payee', 'logo'],
+                value_type: 'image',
+                display: [
+                  { locale: 'en', name: 'Payee logo' },
+                  { locale: 'de', name: 'Logo des Empfängers' },
+                ],
+              },
+              { path: ['payee', 'logo#integrity'] },
+            ],
+            ui_labels: {
+              transaction_title: [
+                { locale: 'en', value: 'Confirm Payment' },
+                { locale: 'de', value: 'Zahlung bestätigen' },
+              ],
+              affirmative_action_label: [
+                { locale: 'en', value: 'Pay' },
+                { locale: 'de', value: 'Bezahlen' },
+              ],
+            },
+          },
+        },
+      },
+    } as CredentialConfigCreate,
+  },
 ];

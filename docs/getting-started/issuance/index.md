@@ -416,6 +416,8 @@ This issuance documentation is organized into the following sections:
 - **[Credential Configuration](credential-configuration.md)** - Learn how to
   define individual credential types, their structure, claims, and display
   properties
+- **[PaSO Credential Metadata](paso-credential-metadata.md)** - Learn how to
+  configure PaSO metadata, discover endpoints, and serve signed JWT metadata
 - **[Schema Metadata](schema-metadata.md)** - Manage TS11 schema metadata as a
   dedicated, reusable registrar-backed resource
 - **[Issuance Configuration](issuance-configuration.md)** - Understand how to
@@ -434,11 +436,13 @@ For a quick start, follow these steps:
    Attribute Providers using the [Attribute Providers](attribute-provider.md) guide
 2. **Create a credential configuration** - Define your credential type using the
    [Credential Configuration](credential-configuration.md) guide
-3. **Create schema metadata** (recommended) - Manage TS11 schema metadata using the
+3. **Configure PaSO Metadata** (optional) - Define transaction data types using the
+   [PaSO Credential Metadata](paso-credential-metadata.md) guide
+4. **Create schema metadata** (recommended) - Manage TS11 schema metadata using the
    [Schema Metadata](schema-metadata.md) guide
-4. **Create an issuance configuration** - Define the issuance configuration using
+5. **Create an issuance configuration** - Define the issuance configuration using
    the [Issuance Configuration](issuance-configuration.md) guide
-5. **Create a credential offer** - Start the issuance flow using the
+6. **Create a credential offer** - Start the issuance flow using the
    [Credential Offers](credential-offers.md) guide
 
 ---

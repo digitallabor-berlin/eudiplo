@@ -180,10 +180,10 @@ export function buildDisclosureFrame(
     const leaf = segmentToKey(field.path.at(-1) ?? "");
 
     const node = ensureFrameNode(frame, parentPath);
-    const existing = Array.isArray(node._sd) ? node._sd : [];
+    const existing = Array.isArray(node["_sd"]) ? (node["_sd"] as unknown[]) : [];
     if (!existing.includes(leaf)) {
       existing.push(leaf);
-      node._sd = existing;
+      node["_sd"] = existing;
     }
 
     hasDisclosure = true;

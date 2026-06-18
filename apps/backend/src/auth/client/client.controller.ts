@@ -14,8 +14,8 @@ import {
 import { ApiTags } from "@nestjs/swagger";
 import { Role } from "../roles/role.enum";
 import { Secured } from "../secure.decorator";
-import { Token, TokenPayload } from "../token.decorator";
 import { requireTenantContext } from "../tenant-context.util";
+import { Token, TokenPayload } from "../token.decorator";
 import { CLIENTS_PROVIDER, ClientsProvider } from "./client.provider";
 import { ClientSecretResponseDto } from "./dto/client-secret-response.dto";
 import { CreateClientDto } from "./dto/create-client.dto";

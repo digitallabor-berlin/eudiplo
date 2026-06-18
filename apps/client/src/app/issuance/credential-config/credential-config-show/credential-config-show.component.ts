@@ -13,7 +13,13 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
-import { CredentialConfig, deriveRuntimeArtifacts } from '@eudiplo/sdk-core';
+import {
+  CredentialConfig,
+  deriveRuntimeArtifacts,
+  PasoConfig,
+  PasoTransactionDataTypeConfig,
+  PasoUiLabelEntry,
+} from '@eudiplo/sdk-core';
 import { CredentialConfigService } from '../credential-config.service';
 import { StatusListManagementService } from '../../../status-list-management/status-list-management.service';
 import { downloadJsonFile } from '../../../common/download-json.util';
@@ -32,6 +38,26 @@ interface SchemaPathInfo {
   required: Set<string>;
   known: Set<string>;
   types: Map<string, string>;
+}
+
+export interface PasoUiLabelKind {
+  key: 'transaction_title' | 'affirmative_action_label' | 'denial_action_label' | 'security_hint';
+  label: string;
+  icon: string;
+}
+
+export interface PasoTransactionTypeView {
+  key: string;
+  claims: {
+    pathLabel: string;
+    mandatory: boolean;
+    value_type?: string;
+    displays: { locale: string; name: string; display_type?: string }[];
+  }[];
+  uiLabels: {
+    kind: PasoUiLabelKind;
+    entries: PasoUiLabelEntry[];
+  }[];
 }
 
 @Component({
@@ -692,5 +718,68 @@ export class CredentialConfigShowComponent implements OnInit {
 
   asAny(obj: any) {
     return obj;
+  }
+
+  // ===== PASO (Payment Authorization Service Operations) =====
+
+  readonly pasoUiLabelKinds: PasoUiLabelKind[] = [
+    { key: 'transaction_title', label: 'Transaction title', icon: 'title' },
+    {
+      key: 'affirmative_action_label',
+      label: 'Affirmative action label',
+      icon: 'check_circle',
+    },
+    { key: 'denial_action_label', label: 'Denial action label', icon: 'cancel' },
+    { key: 'security_hint', label: 'Security hint', icon: 'shield' },
+  ];
+
+  get pasoConfigValue(): PasoConfig | null {
+    const paso = (this.config as any)?.paso as PasoConfig | undefined | null;
+    if (!paso || !paso.transactionDataTypes) {
+      return null;
+    }
+    if (Object.keys(paso.transactionDataTypes).length === 0) {
+      return null;
+    }
+    return paso;
+  }
+
+  get pasoTransactionTypes(): PasoTransactionTypeView[] {
+    const paso = this.pasoConfigValue;
+    if (!paso) {
+      return [];
+    }
+
+    return Object.entries(paso.transactionDataTypes).map(([key, raw]) => {
+      const config = raw as PasoTransactionDataTypeConfig;
+
+      const claims = (config.claims ?? []).map((claim) => ({
+        pathLabel: this.formatPasoPath(claim.path),
+        mandatory: !!claim.mandatory,
+        value_type: claim.value_type,
+        displays: (claim.display ?? []).map((d) => ({
+          locale: d.locale,
+          name: d.name,
+          display_type: d.display_type,
+        })),
+      }));
+
+      const uiLabelsSource = config.ui_labels ?? {};
+      const uiLabels = this.pasoUiLabelKinds
+        .map((kind) => ({
+          kind,
+          entries: ((uiLabelsSource as any)[kind.key] ?? []) as PasoUiLabelEntry[],
+        }))
+        .filter((bucket) => bucket.entries.length > 0);
+
+      return { key, claims, uiLabels };
+    });
+  }
+
+  private formatPasoPath(path: (string | number | null)[] | undefined): string {
+    if (!path || path.length === 0) {
+      return '(empty)';
+    }
+    return path.map((segment) => (segment === null ? 'null' : String(segment))).join('.');
   }
 }

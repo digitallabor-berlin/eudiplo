@@ -2459,6 +2459,182 @@ export const WebhookEndpointEntitySchema = {
     ]
 } as const;
 
+export const PasoConfigSchema = {
+    type: 'object',
+    properties: {
+        transactionDataTypes: {
+            type: 'object',
+            additionalProperties: {
+                $ref: '#/components/schemas/PasoTransactionDataTypeConfig'
+            },
+            description: 'A map of PaSO transaction data types keyed by URN'
+        },
+        signedMetadataLifetimeSeconds: {
+            type: 'number',
+            description: 'Lifetime of the signed metadata JWT in seconds. Default is 86400 (24 hours).',
+            example: 86400,
+            default: 86400
+        }
+    },
+    required: [
+        'transactionDataTypes'
+    ]
+} as const;
+
+export const PasoFieldDisplaySchema = {
+    type: 'object',
+    properties: {
+        locale: {
+            type: 'string',
+            description: 'Locale code (e.g., \'en\', \'de\')',
+            example: 'en'
+        },
+        name: {
+            type: 'string',
+            description: 'Display name for the field',
+            example: 'Amount'
+        },
+        display_type: {
+            type: 'string',
+            description: 'Optional display type',
+            example: 'amount'
+        }
+    },
+    required: [
+        'locale',
+        'name'
+    ]
+} as const;
+
+export const PasoClaimMetadataSchema = {
+    type: 'object',
+    properties: {
+        path: {
+            type: 'array',
+            description: 'Path to the claim inside the credential',
+            example: [
+                'payment_details',
+                'amount'
+            ],
+            items: {
+                oneOf: [
+                    {
+                        type: 'string'
+                    },
+                    {
+                        type: 'number'
+                    },
+                    {
+                        type: 'null'
+                    }
+                ]
+            }
+        },
+        mandatory: {
+            type: 'boolean',
+            description: 'Indicates whether the claim is mandatory for the transaction',
+            example: true
+        },
+        display: {
+            description: 'Localized display information for the claim',
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/PasoFieldDisplay'
+            }
+        },
+        value_type: {
+            type: 'string',
+            description: 'Type of value (only allowed if display is present)',
+            example: 'currency-amount'
+        }
+    },
+    required: [
+        'path'
+    ]
+} as const;
+
+export const PasoUiLabelEntrySchema = {
+    type: 'object',
+    properties: {
+        locale: {
+            type: 'string',
+            description: 'Locale code (e.g., \'en\')',
+            example: 'en'
+        },
+        value: {
+            type: 'string',
+            description: 'The text value of the UI label',
+            example: 'Do you want to authorize this payment?'
+        },
+        value_type: {
+            type: 'string',
+            description: 'Optional value type designation',
+            example: 'text/markdown'
+        }
+    },
+    required: [
+        'value'
+    ]
+} as const;
+
+export const PasoUiLabelsSchema = {
+    type: 'object',
+    properties: {
+        affirmative_action_label: {
+            description: 'Label for the affirmative action',
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/PasoUiLabelEntry'
+            }
+        },
+        denial_action_label: {
+            description: 'Label for the denial action',
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/PasoUiLabelEntry'
+            }
+        },
+        transaction_title: {
+            description: 'Title for the transaction UI',
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/PasoUiLabelEntry'
+            }
+        },
+        security_hint: {
+            description: 'Security hint for the user',
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/PasoUiLabelEntry'
+            }
+        }
+    }
+} as const;
+
+export const PasoTransactionDataTypeConfigSchema = {
+    type: 'object',
+    properties: {
+        claims: {
+            description: 'Claims included in this transaction data type',
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/PasoClaimMetadata'
+            }
+        },
+        ui_labels: {
+            description: 'UI labels for the transaction UI',
+            allOf: [
+                {
+                    $ref: '#/components/schemas/PasoUiLabels'
+                }
+            ]
+        }
+    },
+    required: [
+        'claims'
+    ]
+} as const;
+
 export const SchemaUriEntrySchema = {
     type: 'object',
     properties: {
@@ -2481,10 +2657,7 @@ export const SchemaUriEntrySchema = {
             description: 'Schema-format specific metadata (for example { vct: \'urn:example:vct\' } for dc+sd-jwt).',
             additionalProperties: true
         }
-    },
-    required: [
-        'meta'
-    ]
+    }
 } as const;
 
 export const TrustAuthorityEntrySchema = {
@@ -2512,9 +2685,17 @@ export const TrustAuthorityEntrySchema = {
             description: 'Whether this trust authority is a List of Trusted Entities (LoTE)'
         },
         verificationMethod: {
-            type: 'object',
             description: 'Optional verification material for external trusted authorities (for example a JWK). For internal trust-list URLs, EUDIPLO resolves verification material from the database.',
-            additionalProperties: true
+            oneOf: [
+                {
+                    type: 'object',
+                    additionalProperties: true
+                },
+                {
+                    type: 'string',
+                    description: 'JSON string representing an object. Parsed server-side for form submissions.'
+                }
+            ]
         }
     }
 } as const;
@@ -3016,6 +3197,15 @@ export const CredentialConfigSchema = {
                 }
             ]
         },
+        paso: {
+            nullable: true,
+            type: 'object',
+            allOf: [
+                {
+                    $ref: '#/components/schemas/PasoConfig'
+                }
+            ]
+        },
         embeddedDisclosurePolicy: {
             nullable: true,
             description: 'Embedded disclosure policy (discriminated union by `policy`).\nThe discriminator makes class-transformer instantiate the right subclass,\nand then class-validator runs that subclass’s rules.',
@@ -3157,6 +3347,15 @@ export const CredentialConfigCreateSchema = {
                 }
             ]
         },
+        paso: {
+            nullable: true,
+            type: 'object',
+            allOf: [
+                {
+                    $ref: '#/components/schemas/PasoConfig'
+                }
+            ]
+        },
         embeddedDisclosurePolicy: {
             nullable: true,
             description: 'Embedded disclosure policy (discriminated union by `policy`).\nThe discriminator makes class-transformer instantiate the right subclass,\nand then class-validator runs that subclass’s rules.',
@@ -3277,6 +3476,15 @@ export const CredentialConfigUpdateSchema = {
             allOf: [
                 {
                     $ref: '#/components/schemas/SchemaMetaConfig'
+                }
+            ]
+        },
+        paso: {
+            nullable: true,
+            type: 'object',
+            allOf: [
+                {
+                    $ref: '#/components/schemas/PasoConfig'
                 }
             ]
         },

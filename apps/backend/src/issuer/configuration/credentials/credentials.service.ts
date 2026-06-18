@@ -120,7 +120,7 @@ export class CredentialsService {
             const algs = this.cryptoImplementationService.getAlgs(
                 format,
             ) as number[];
-            return this.buildMdocConfiguration(entity, algs);
+            return this.buildMdocConfiguration(entity, tenantId, algs);
         } else {
             // For SD-JWT, algorithms are JOSE strings
             const algs = this.cryptoImplementationService.getAlgs(
@@ -135,6 +135,7 @@ export class CredentialsService {
      */
     private buildMdocConfiguration(
         entity: CredentialConfig,
+        tenantId: string,
         algs: number[],
     ): TypedCredentialConfig & { disclosure_policy?: unknown } {
         const doctype = entity.config.docType;
@@ -180,6 +181,16 @@ export class CredentialsService {
             credentialMetadata,
             entity.config.scope,
         );
+
+        const isPasoEnabled =
+            entity.paso?.transactionDataTypes &&
+            Object.keys(entity.paso.transactionDataTypes).length > 0;
+        if (isPasoEnabled) {
+            const publicUrl =
+                this.configService.getOrThrow<string>("PUBLIC_URL");
+            (config as any).credential_metadata_uri =
+                `${publicUrl}/.well-known/openid-credential-issuer/issuers/${tenantId}/credential-metadata/${entity.id}`;
+        }
 
         // Add disclosure policy if present
         if (entity.embeddedDisclosurePolicy) {
@@ -246,6 +257,16 @@ export class CredentialsService {
             credentialMetadata,
             entity.config.scope,
         );
+
+        const isPasoEnabled =
+            entity.paso?.transactionDataTypes &&
+            Object.keys(entity.paso.transactionDataTypes).length > 0;
+        if (isPasoEnabled) {
+            const publicUrl =
+                this.configService.getOrThrow<string>("PUBLIC_URL");
+            (config as any).credential_metadata_uri =
+                `${publicUrl}/.well-known/openid-credential-issuer/issuers/${tenantId}/credential-metadata/${entity.id}`;
+        }
 
         // Add disclosure policy if present
         if (entity.embeddedDisclosurePolicy) {

@@ -12,6 +12,7 @@
   },
   "dev": {
     "port": 8788,
+    "inspector_port": 9231,
     "local_protocol": "http",
   },
 

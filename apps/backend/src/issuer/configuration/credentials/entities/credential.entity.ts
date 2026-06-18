@@ -23,6 +23,10 @@ import { AttributeProviderEntity } from "../../attribute-provider/entities/attri
 import { KeyAttestationsRequired } from "../../issuance/dto/key-attestations-required.dto";
 import { WebhookEndpointEntity } from "../../webhook-endpoint/entities/webhook-endpoint.entity";
 import { ClaimFieldDefinitionDto } from "../dto/claim-field-definition.dto";
+import {
+    PasoConfig,
+    PasoTransactionDataTypeConfig,
+} from "../dto/paso-config.dto";
 import { SchemaMetaConfig } from "../dto/schema-meta-config.dto";
 import {
     IaeAction,
@@ -123,6 +127,8 @@ export class IssuerMetadataCredentialConfig {
     IaeActionOpenid4vpPresentation,
     IaeActionRedirectToWeb,
     WebhookEndpointEntity,
+    PasoConfig,
+    PasoTransactionDataTypeConfig,
 )
 @Entity()
 export class CredentialConfig {
@@ -310,6 +316,13 @@ export class CredentialConfig {
     @ApiPropertyOptional({ type: () => SchemaMetaConfig })
     @Column("json", { nullable: true })
     schemaMeta?: SchemaMetaConfig | null;
+
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => PasoConfig)
+    @ApiPropertyOptional({ type: () => PasoConfig })
+    @Column("json", { nullable: true })
+    paso?: PasoConfig | null;
 
     /**
      * Embedded disclosure policy (discriminated union by `policy`).

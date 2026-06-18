@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/openwallet-foundation/eudiplo/refs/heads/main/schemas/PasoConfig.schema.json",
+  "title": "PasoConfig",
+  "type": "object",
+  "properties": {
+    "transactionDataTypes": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "./PasoTransactionDataTypeConfig.schema.json"
+      },
+      "description": "A map of PaSO transaction data types keyed by URN"
+    },
+    "signedMetadataLifetimeSeconds": {
+      "type": "number",
+      "description": "Lifetime of the signed metadata JWT in seconds. Default is 86400 (24 hours).",
+      "example": 86400,
+      "default": 86400
+    }
+  },
+  "required": [
+    "transactionDataTypes"
+  ],
+  "additionalProperties": false
+}

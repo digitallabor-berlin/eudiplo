@@ -39,6 +39,12 @@ import {
   webhookEndpointControllerGetAll,
   AttributeProviderEntity,
   WebhookEndpointEntity,
+  PasoConfig,
+  PasoTransactionDataTypeConfig,
+  PasoClaimMetadata,
+  PasoFieldDisplay,
+  PasoUiLabels,
+  PasoUiLabelEntry,
 } from '@eudiplo/sdk-core';
 import { PresentationManagementService } from '../../../presentation/presentation-config/presentation-management.service';
 import { CredentialConfigService } from '../credential-config.service';
@@ -133,6 +139,8 @@ export class CredentialConfigCreateComponent implements OnInit {
   embeddedDisclosurePolicySchema = embeddedDisclosurePolicySchema;
 
   readonly localeOptions = [
+    { value: 'en', label: 'English' },
+    { value: 'de', label: 'German' },
     { value: 'en-US', label: 'English (United States)' },
     { value: 'en-GB', label: 'English (United Kingdom)' },
     { value: 'de-DE', label: 'German (Germany)' },
@@ -191,6 +199,29 @@ export class CredentialConfigCreateComponent implements OnInit {
       keyAttestationEnabled: new FormControl(false),
       keyStorageTypes: new FormControl<string[]>([]),
       userAuthenticationTypes: new FormControl<string[]>([]),
+      // PASO (Payment Authorization Service Operations) configuration
+      paso: new FormGroup(
+        {
+          enabled: new FormControl(false),
+          signedMetadataLifetimeSeconds: new FormControl<number | null>(null, [Validators.min(1)]),
+          transactionDataTypes: new FormArray<FormGroup>([]),
+        },
+        {
+          // Reject save when the user enabled PASO but didn't actually configure
+          // any transaction data types. Without this guard, `buildPasoPayload`
+          // silently returns null and the next reload shows the toggle as OFF.
+          validators: [
+            (group) => {
+              const enabled = group.get('enabled')?.value;
+              const tdts = group.get('transactionDataTypes') as FormArray | null;
+              if (enabled && (!tdts || tdts.length === 0)) {
+                return { pasoEnabledWithoutTransactionDataTypes: true };
+              }
+              return null;
+            },
+          ],
+        }
+      ),
     } as { [k in keyof Omit<CredentialConfigCreate, 'config'>]: any });
 
     // Set initial validator for vctString based on default mode
@@ -198,6 +229,17 @@ export class CredentialConfigCreateComponent implements OnInit {
       this.form.get('vctString')?.setValidators([Validators.required]);
       this.form.get('vctString')?.updateValueAndValidity();
     }
+
+    // When the user flips the PASO master toggle ON, seed an empty TDT row so
+    // they have something to fill in. This subscription is suppressed during
+    // patchPasoFromConfig (via emitEvent:false) to avoid double-seeding when
+    // loading an existing credential.
+    this.pasoGroup.get('enabled')?.valueChanges.subscribe((enabled) => {
+      if (enabled && this.pasoTransactionDataTypes.length === 0) {
+        this.addPasoTransactionDataType();
+      }
+      this.pasoGroup.updateValueAndValidity({ emitEvent: false });
+    });
 
     // Listen for format changes to update validators
     this.form.get('format')?.valueChanges.subscribe((format) => {
@@ -390,7 +432,20 @@ export class CredentialConfigCreateComponent implements OnInit {
     return this.countInvalidControls(this.form.get('fields'));
   }
 
-  getTabInvalidCount(tab: 'metadata' | 'business' | 'display' | 'fields'): number {
+  private pasoInvalidCount(): number {
+    const enabled = !!this.form.get('paso.enabled')?.value;
+    if (!enabled) {
+      return 0;
+    }
+    // Count nested control errors plus the group-level
+    // `pasoEnabledWithoutTransactionDataTypes` error (which has no FormControl
+    // to attach to and would otherwise be invisible in the tab badge).
+    const nested = this.countInvalidControls(this.form.get('paso'));
+    const groupLevel = this.pasoGroup.errors?.['pasoEnabledWithoutTransactionDataTypes'] ? 1 : 0;
+    return nested + groupLevel;
+  }
+
+  getTabInvalidCount(tab: 'metadata' | 'business' | 'display' | 'fields' | 'paso'): number {
     switch (tab) {
       case 'metadata':
         return this.metadataInvalidCount();
@@ -400,12 +455,14 @@ export class CredentialConfigCreateComponent implements OnInit {
         return this.visualInvalidCount();
       case 'fields':
         return this.fieldsInvalidCount();
+      case 'paso':
+        return this.pasoInvalidCount();
       default:
         return 0;
     }
   }
 
-  showTabError(tab: 'metadata' | 'business' | 'display' | 'fields'): boolean {
+  showTabError(tab: 'metadata' | 'business' | 'display' | 'fields' | 'paso'): boolean {
     if (this.getTabInvalidCount(tab) === 0) {
       return false;
     }
@@ -433,7 +490,9 @@ export class CredentialConfigCreateComponent implements OnInit {
     return false;
   }
 
-  private tabHasUserVisibleErrors(tab: 'metadata' | 'business' | 'display' | 'fields'): boolean {
+  private tabHasUserVisibleErrors(
+    tab: 'metadata' | 'business' | 'display' | 'fields' | 'paso'
+  ): boolean {
     switch (tab) {
       case 'metadata': {
         const hasBaseErrors = ['id', 'description', 'format', 'lifeTime'].some((name) =>
@@ -454,6 +513,12 @@ export class CredentialConfigCreateComponent implements OnInit {
         return this.hasTouchedOrDirtyInvalid(this.form.get('displayConfigs'));
       case 'fields':
         return this.hasTouchedOrDirtyInvalid(this.form.get('fields'));
+      case 'paso': {
+        if (!this.form.get('paso.enabled')?.value) {
+          return false;
+        }
+        return this.hasTouchedOrDirtyInvalid(this.form.get('paso'));
+      }
       default:
         return false;
     }
@@ -531,6 +596,9 @@ export class CredentialConfigCreateComponent implements OnInit {
         this.iaeActions.push(this.createIaeActionGroup(action))
       );
     }
+
+    // Handle PASO configuration
+    this.patchPasoFromConfig((normalizedConfig as any).paso ?? null);
 
     // Update lifetime preset selection
     this.updateLifetimePresetFromValue(normalizedConfig.lifeTime || 3600);
@@ -823,6 +891,352 @@ export class CredentialConfigCreateComponent implements OnInit {
     this.iaeActions.updateValueAndValidity();
   }
 
+  // ===== PASO (Payment Authorization Service Operations) =====
+
+  readonly pasoUrnPattern = /^urn:paso:sca:[^:]+:[^:]+:[^:]+$/;
+
+  readonly pasoUiLabelKinds: {
+    key: 'affirmative_action_label' | 'denial_action_label' | 'transaction_title' | 'security_hint';
+    label: string;
+    icon: string;
+    hint: string;
+  }[] = [
+    {
+      key: 'transaction_title',
+      label: 'Transaction title',
+      icon: 'title',
+      hint: 'Headline shown to the user.',
+    },
+    {
+      key: 'affirmative_action_label',
+      label: 'Affirmative action label',
+      icon: 'check_circle',
+      hint: 'Label for the confirm / approve button.',
+    },
+    {
+      key: 'denial_action_label',
+      label: 'Denial action label',
+      icon: 'cancel',
+      hint: 'Label for the deny / cancel button.',
+    },
+    {
+      key: 'security_hint',
+      label: 'Security hint',
+      icon: 'shield',
+      hint: 'Security guidance shown to the user.',
+    },
+  ];
+
+  get pasoGroup(): FormGroup {
+    return this.form.get('paso') as FormGroup;
+  }
+
+  get pasoTransactionDataTypes(): FormArray<FormGroup> {
+    return this.pasoGroup.get('transactionDataTypes') as FormArray<FormGroup>;
+  }
+
+  getPasoTypeGroup(index: number): FormGroup {
+    return this.pasoTransactionDataTypes.at(index) as FormGroup;
+  }
+
+  getPasoClaimsArray(typeIndex: number): FormArray<FormGroup> {
+    return this.getPasoTypeGroup(typeIndex).get('claims') as FormArray<FormGroup>;
+  }
+
+  getPasoClaimGroup(typeIndex: number, claimIndex: number): FormGroup {
+    return this.getPasoClaimsArray(typeIndex).at(claimIndex) as FormGroup;
+  }
+
+  getPasoClaimDisplayArray(typeIndex: number, claimIndex: number): FormArray<FormGroup> {
+    return this.getPasoClaimGroup(typeIndex, claimIndex).get('display') as FormArray<FormGroup>;
+  }
+
+  getPasoUiLabelsGroup(typeIndex: number): FormGroup {
+    return this.getPasoTypeGroup(typeIndex).get('ui_labels') as FormGroup;
+  }
+
+  getPasoUiLabelEntries(
+    typeIndex: number,
+    key: 'affirmative_action_label' | 'denial_action_label' | 'transaction_title' | 'security_hint'
+  ): FormArray<FormGroup> {
+    return this.getPasoUiLabelsGroup(typeIndex).get(key) as FormArray<FormGroup>;
+  }
+
+  private createPasoFieldDisplayGroup(entry?: PasoFieldDisplay): FormGroup {
+    return new FormGroup({
+      locale: new FormControl(entry?.locale ?? 'en-US', [Validators.required]),
+      name: new FormControl(entry?.name ?? '', [Validators.required]),
+      display_type: new FormControl(entry?.display_type ?? ''),
+    });
+  }
+
+  private createPasoClaimGroup(claim?: PasoClaimMetadata): FormGroup {
+    const displays = (claim?.display ?? []).map((d) => this.createPasoFieldDisplayGroup(d));
+    return new FormGroup({
+      path: new FormControl(this.joinPasoPath(claim?.path), [Validators.required]),
+      mandatory: new FormControl(!!claim?.mandatory),
+      value_type: new FormControl(claim?.value_type ?? ''),
+      display: new FormArray<FormGroup>(displays),
+    });
+  }
+
+  private createPasoUiLabelEntryGroup(entry?: PasoUiLabelEntry): FormGroup {
+    return new FormGroup({
+      locale: new FormControl(entry?.locale ?? 'en-US'),
+      value: new FormControl(entry?.value ?? '', [Validators.required]),
+      value_type: new FormControl(entry?.value_type ?? ''),
+    });
+  }
+
+  private createPasoUiLabelsGroup(labels?: PasoUiLabels | null): FormGroup {
+    const build = (entries?: PasoUiLabelEntry[]) =>
+      new FormArray<FormGroup>((entries ?? []).map((e) => this.createPasoUiLabelEntryGroup(e)));
+    return new FormGroup({
+      affirmative_action_label: build(labels?.affirmative_action_label),
+      denial_action_label: build(labels?.denial_action_label),
+      transaction_title: build(labels?.transaction_title),
+      security_hint: build(labels?.security_hint),
+    });
+  }
+
+  private createPasoTransactionDataTypeGroup(
+    key?: string,
+    config?: PasoTransactionDataTypeConfig
+  ): FormGroup {
+    const claims = (config?.claims ?? []).map((c) => this.createPasoClaimGroup(c));
+    return new FormGroup({
+      key: new FormControl(key ?? '', [
+        Validators.required,
+        Validators.pattern(this.pasoUrnPattern),
+      ]),
+      claims: new FormArray<FormGroup>(claims),
+      ui_labels: this.createPasoUiLabelsGroup(config?.ui_labels ?? null),
+    });
+  }
+
+  addPasoTransactionDataType(): void {
+    this.pasoTransactionDataTypes.push(
+      this.createPasoTransactionDataTypeGroup(undefined, {
+        claims: [
+          {
+            path: [],
+          } as PasoClaimMetadata,
+        ],
+      })
+    );
+  }
+
+  removePasoTransactionDataType(index: number): void {
+    this.pasoTransactionDataTypes.removeAt(index);
+  }
+
+  addPasoClaim(typeIndex: number): void {
+    this.getPasoClaimsArray(typeIndex).push(
+      this.createPasoClaimGroup({ path: [] } as PasoClaimMetadata)
+    );
+  }
+
+  removePasoClaim(typeIndex: number, claimIndex: number): void {
+    this.getPasoClaimsArray(typeIndex).removeAt(claimIndex);
+  }
+
+  addPasoClaimDisplay(typeIndex: number, claimIndex: number): void {
+    this.getPasoClaimDisplayArray(typeIndex, claimIndex).push(this.createPasoFieldDisplayGroup());
+  }
+
+  removePasoClaimDisplay(typeIndex: number, claimIndex: number, displayIndex: number): void {
+    this.getPasoClaimDisplayArray(typeIndex, claimIndex).removeAt(displayIndex);
+  }
+
+  addPasoUiLabelEntry(
+    typeIndex: number,
+    key: 'affirmative_action_label' | 'denial_action_label' | 'transaction_title' | 'security_hint'
+  ): void {
+    this.getPasoUiLabelEntries(typeIndex, key).push(this.createPasoUiLabelEntryGroup());
+  }
+
+  removePasoUiLabelEntry(
+    typeIndex: number,
+    key: 'affirmative_action_label' | 'denial_action_label' | 'transaction_title' | 'security_hint',
+    entryIndex: number
+  ): void {
+    this.getPasoUiLabelEntries(typeIndex, key).removeAt(entryIndex);
+  }
+
+  /**
+   * Parse a dot-separated PASO path into the (string | number | null)[] format the
+   * backend expects. Segments matching /^-?\d+$/ become numbers; the literal `null`
+   * becomes null; everything else stays a string.
+   */
+  private parsePasoPath(value: string | null | undefined): (string | number | null)[] {
+    if (!value) {
+      return [];
+    }
+    return value
+      .split('.')
+      .map((segment) => segment.trim())
+      .filter((segment) => segment.length > 0)
+      .map((segment) => {
+        if (segment === 'null') return null;
+        if (/^-?\d+$/.test(segment)) return Number(segment);
+        return segment;
+      });
+  }
+
+  /**
+   * Inverse of parsePasoPath — render a stored PASO path as a dot-separated string
+   * for editing in the UI. Null segments are rendered as the literal `null`.
+   */
+  private joinPasoPath(parts: (string | number | null)[] | undefined): string {
+    if (!parts || parts.length === 0) {
+      return '';
+    }
+    return parts.map((p) => (p === null ? 'null' : String(p))).join('.');
+  }
+
+  private patchPasoFromConfig(paso: PasoConfig | null): void {
+    this.pasoTransactionDataTypes.clear();
+
+    if (!paso) {
+      // Suppress the auto-seed in our `enabled` valueChanges subscription so
+      // clearing the form on load doesn't push an empty TDT row.
+      this.pasoGroup.patchValue(
+        { enabled: false, signedMetadataLifetimeSeconds: null },
+        { emitEvent: false }
+      );
+      this.pasoGroup.updateValueAndValidity({ emitEvent: false });
+      return;
+    }
+
+    // The toggle is ON whenever the credential has *any* paso block persisted,
+    // even if `transactionDataTypes` is currently empty. This lets users fix
+    // an empty-paso row that previously slipped past the validator instead of
+    // having the whole PASO panel silently collapse.
+    const entries = Object.entries(paso.transactionDataTypes ?? {});
+    this.pasoGroup.patchValue(
+      {
+        enabled: true,
+        signedMetadataLifetimeSeconds: paso.signedMetadataLifetimeSeconds ?? null,
+      },
+      { emitEvent: false }
+    );
+
+    for (const [key, config] of entries) {
+      this.pasoTransactionDataTypes.push(this.createPasoTransactionDataTypeGroup(key, config));
+    }
+
+    // Re-evaluate the group-level validator so the "enabled but no TDTs"
+    // error surfaces immediately when reopening a broken row.
+    this.pasoGroup.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private buildPasoPayload(rawPaso: any): PasoConfig | null {
+    if (!rawPaso || !rawPaso.enabled) {
+      return null;
+    }
+
+    const transactionDataTypes: Record<string, PasoTransactionDataTypeConfig> = {};
+    const rawTypes: any[] = rawPaso.transactionDataTypes || [];
+
+    for (const rawType of rawTypes) {
+      const key = (rawType.key || '').trim();
+      if (!key) continue;
+
+      const claims: PasoClaimMetadata[] = (rawType.claims || [])
+        .map((rawClaim: any) => {
+          const path = this.parsePasoPath(rawClaim.path);
+          if (path.length === 0) {
+            return null;
+          }
+
+          const display = (rawClaim.display || [])
+            .map((d: any) => {
+              const locale = (d.locale || '').trim();
+              const name = (d.name || '').trim();
+              if (!locale || !name) {
+                return null;
+              }
+              const entry: PasoFieldDisplay = { locale, name };
+              const display_type = (d.display_type || '').trim();
+              if (display_type) {
+                entry.display_type = display_type;
+              }
+              return entry;
+            })
+            .filter((d: PasoFieldDisplay | null): d is PasoFieldDisplay => !!d);
+
+          const claim: PasoClaimMetadata = { path };
+          if (rawClaim.mandatory) {
+            claim.mandatory = true;
+          }
+          if (display.length > 0) {
+            claim.display = display;
+            const value_type = (rawClaim.value_type || '').trim();
+            if (value_type) {
+              claim.value_type = value_type;
+            }
+          }
+          return claim;
+        })
+        .filter((c: PasoClaimMetadata | null): c is PasoClaimMetadata => !!c);
+
+      const ui_labels = this.buildPasoUiLabelsPayload(rawType.ui_labels);
+
+      const typeConfig: PasoTransactionDataTypeConfig = { claims };
+      if (ui_labels) {
+        typeConfig.ui_labels = ui_labels;
+      }
+
+      transactionDataTypes[key] = typeConfig;
+    }
+
+    if (Object.keys(transactionDataTypes).length === 0) {
+      return null;
+    }
+
+    const result: PasoConfig = { transactionDataTypes };
+    if (
+      rawPaso.signedMetadataLifetimeSeconds !== null &&
+      rawPaso.signedMetadataLifetimeSeconds !== undefined &&
+      rawPaso.signedMetadataLifetimeSeconds !== ''
+    ) {
+      result.signedMetadataLifetimeSeconds = Number(rawPaso.signedMetadataLifetimeSeconds);
+    }
+    return result;
+  }
+
+  private buildPasoUiLabelsPayload(rawLabels: any): PasoUiLabels | undefined {
+    if (!rawLabels) {
+      return undefined;
+    }
+    const collect = (entries: any[] | undefined): PasoUiLabelEntry[] => {
+      return (entries || [])
+        .map((e) => {
+          const value = (e?.value || '').trim();
+          if (!value) return null;
+          const entry: PasoUiLabelEntry = { value };
+          const locale = (e?.locale || '').trim();
+          if (locale) entry.locale = locale;
+          const value_type = (e?.value_type || '').trim();
+          if (value_type) entry.value_type = value_type;
+          return entry;
+        })
+        .filter((e): e is PasoUiLabelEntry => !!e);
+    };
+
+    const labels: PasoUiLabels = {};
+    const affirmative = collect(rawLabels.affirmative_action_label);
+    const denial = collect(rawLabels.denial_action_label);
+    const title = collect(rawLabels.transaction_title);
+    const security = collect(rawLabels.security_hint);
+    if (affirmative.length) labels.affirmative_action_label = affirmative;
+    if (denial.length) labels.denial_action_label = denial;
+    if (title.length) labels.transaction_title = title;
+    if (security.length) labels.security_hint = security;
+
+    return Object.keys(labels).length > 0 ? labels : undefined;
+  }
+
   /**
    * Open JSON view dialog to show/edit the complete configuration
    */
@@ -930,6 +1344,14 @@ export class CredentialConfigCreateComponent implements OnInit {
     } else {
       formValue.iaeActions = null;
     }
+
+    // PASO transaction data types — collapse the form's nested array shape into
+    // the backend's Record<urn, PasoTransactionDataTypeConfig>. Null clears.
+    // IMPORTANT: never let the raw form-shaped paso (where transactionDataTypes
+    // is an array) leak to the backend. The backend's @Transform on PasoConfig
+    // would convert that array into an empty `{}` record, leaving the credential
+    // in a paso-but-empty state that's invisible in the well-known metadata.
+    formValue.paso = this.buildPasoPayload(formValue.paso);
 
     // Clean up form-only fields
     delete formValue.displayConfigs;

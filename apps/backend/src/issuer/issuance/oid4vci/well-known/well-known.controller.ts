@@ -1,8 +1,9 @@
-import { Controller, Get, Header, Param, Res } from "@nestjs/common";
+import { Controller, Get, Header, Headers, Param, Res } from "@nestjs/common";
 import { ApiOperation, ApiProduces, ApiTags } from "@nestjs/swagger";
 import { Response } from "express";
 import { ContentType } from "../../../../shared/utils/mediaType/media-type.decorator";
 import { MediaType } from "../../../../shared/utils/mediaType/media-type.enum";
+import { CredentialMetadataService } from "./credential-metadata.service";
 import { JwksResponseDto } from "./dto/jwks-response.dto";
 import { WellKnownService } from "./well-known.service";
 
@@ -15,8 +16,12 @@ export class WellKnownController {
     /**
      * Constructor for WellKnownController.
      * @param wellKnownService
+     * @param credentialMetadataService
      */
-    constructor(private readonly wellKnownService: WellKnownService) {}
+    constructor(
+        private readonly wellKnownService: WellKnownService,
+        private readonly credentialMetadataService: CredentialMetadataService,
+    ) {}
 
     /**
      * Retrieves the OpenID4VCI issuer metadata for a given tenant.
@@ -47,6 +52,37 @@ export class WellKnownController {
         }
 
         return result;
+    }
+
+    /**
+     * Retrieves the PaSO credential metadata for a given tenant.
+     */
+    @ApiOperation({
+        summary: "Get PaSO Credential Metadata",
+        description:
+            "Returns the OID4VCI credential metadata (with optional PaSO extensions) as JSON or a signed JWT.",
+    })
+    @ApiProduces(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JWT)
+    @Header("Cache-Control", "public, max-age=300")
+    @Get(
+        ".well-known/openid-credential-issuer/issuers/:tenantId/credential-metadata/:credentialId",
+    )
+    async credentialMetadata(
+        @Res({ passthrough: true }) res: Response,
+        @ContentType() contentType: MediaType,
+        @Param("tenantId") tenantId: string,
+        @Param("credentialId") credentialId: string,
+        @Headers("accept-language") acceptLanguage?: string,
+    ) {
+        const result = await this.credentialMetadataService.getMetadataDocument(
+            tenantId,
+            credentialId,
+            contentType,
+            acceptLanguage,
+        );
+
+        res.setHeader("Content-Type", result.contentType);
+        return result.body;
     }
 
     /**

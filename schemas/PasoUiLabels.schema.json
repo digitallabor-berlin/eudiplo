@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/openwallet-foundation/eudiplo/refs/heads/main/schemas/PasoUiLabels.schema.json",
+  "title": "PasoUiLabels",
+  "type": "object",
+  "properties": {
+    "affirmative_action_label": {
+      "description": "Label for the affirmative action",
+      "type": "array",
+      "items": {
+        "$ref": "./PasoUiLabelEntry.schema.json"
+      }
+    },
+    "denial_action_label": {
+      "description": "Label for the denial action",
+      "type": "array",
+      "items": {
+        "$ref": "./PasoUiLabelEntry.schema.json"
+      }
+    },
+    "transaction_title": {
+      "description": "Title for the transaction UI",
+      "type": "array",
+      "items": {
+        "$ref": "./PasoUiLabelEntry.schema.json"
+      }
+    },
+    "security_hint": {
+      "description": "Security hint for the user",
+      "type": "array",
+      "items": {
+        "$ref": "./PasoUiLabelEntry.schema.json"
+      }
+    }
+  },
+  "additionalProperties": false
+}
